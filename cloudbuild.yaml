@@ -45,7 +45,7 @@ steps:
       - 'start-update'
       - '${_MIG_NAME}'
       - '--version=template=mig-updater-template-${BUILD_ID}'
-      - '--network=${_NETWORK}
+      - '--network=${_NETWORK}'
       - '--zone=${_ZONE}'
       - '--project=${_PROJECT_ID}'
       - '--proactive'

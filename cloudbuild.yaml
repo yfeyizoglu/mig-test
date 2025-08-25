@@ -1,80 +1,58 @@
 steps:
-  # Cloud Build'ın her adımı, belirtilen bir builder (örneğin 'gcr.io/cloud-builders/gcloud')
-  # içinde çalışır. Bu builder'lar, ilgili komut satırı araçlarını içerir.
-
-  # Adım 1: Golden VM'i durdurma
-  # Yeni bir disk imajı oluşturmadan önce VM'in durdurulması,
-  # diskteki veri tutarlılığını sağlamak için kritik öneme sahiptir.
-  # '--quiet' bayrağı, etkileşimli onay istemlerini engeller.
+  # Step 1: Stop the Golden VM to ensure data consistency
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'stop-golden-vm'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        echo "Golden VM durduruluyor: ${_GOLDEN_VM_NAME}, bölge: ${_ZONE}..."
-        gcloud compute instances stop "${_GOLDEN_VM_NAME}" --zone="${_ZONE}" --project="${PROJECT_ID}" --quiet
+      - 'compute'
+      - 'instances'
+      - 'stop'
+      - '${_GOLDEN_VM_NAME}'
+      - '--zone=${_ZONE}'
+      - '--project=${_PROJECT_ID}'
 
-  # Adım 2: Golden VM'in diskinden yeni bir özel imaj oluşturma
-  # İmaj adı, her Cloud Build çalışması için benzersiz olmasını sağlamak amacıyla
-  # '_BUILD_ID' (Cloud Build tarafından sağlanan benzersiz bir kimlik) kullanılarak oluşturulur.
-  # '--force' bayrağı, aynı diskten birden fazla imaj oluşturmaya izin verir.
+  # Step 2: Create a new custom image from the Golden VM's disk
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'create-custom-image'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        IMAGE_NAME="mig-updater-image-${_BUILD_ID}"
-        echo "Yeni özel imaj oluşturuluyor: ${IMAGE_NAME}, kaynak disk: ${_GOLDEN_VM_NAME}..."
-        gcloud compute images create "${IMAGE_NAME}" \
-          --source-disk="${_GOLDEN_VM_NAME}" \
-          --source-disk-zone="${_ZONE}" \
-          --project="${PROJECT_ID}" \
-          --force
+      - 'compute'
+      - 'images'
+      - 'create'
+      - 'mig-updater-image-${_BUILD_ID}'
+      - '--source-disk=${_GOLDEN_VM_NAME}'
+      - '--source-disk-zone=${_ZONE}'
+      - '--project=${_PROJECT_ID}'
+      - '--force'
 
-  # Adım 3: Yeni oluşturulan imajı kullanarak yeni bir instance template oluşturma
-  # Template adı da '_BUILD_ID' ile benzersiz hale getirilir.
-  # Bölge (region), VM'in bulunduğu 'zone' bilgisinden türetilir (örn: europe-north1-a -> europe-north1).
-  # '--no-address' bayrağı, template'ten oluşturulan VM'lere harici IP atanmamasını sağlar.
+  # Step 3: Create a new instance template based on the newly created image
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'create-instance-template'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        TEMPLATE_NAME="mig-updater-template-${_BUILD_ID}"
-        REGION="${_ZONE%-*}" # Bölge adını zone'dan türetir (örn: europe-north1-a -> europe-north1)
-        echo "Yeni instance template oluşturuluyor: ${TEMPLATE_NAME}, makine tipi: ${_MACHINE_TYPE}, imaj: ${IMAGE_NAME}..."
-        gcloud compute instance-templates create "${TEMPLATE_NAME}" \
-          --machine-type="${_MACHINE_TYPE}" \
-          --region="${REGION}" \
-          --image="${IMAGE_NAME}" \
-          --project="${PROJECT_ID}" \
-          --no-address
+      - 'compute'
+      - 'instance-templates'
+      - 'create'
+      - 'mig-updater-template-${_BUILD_ID}'
+      - '--machine-type=${_MACHINE_TYPE}'
+      - '--region=${_REGION}'
+      - '--image=mig-updater-image-${_BUILD_ID}'
+      - '--project=${_PROJECT_ID}'
+      - '--no-address'
 
-  # Adım 4: Managed Instance Group'u (MIG) yeni instance template ile güncelleme
-  # 'rolling-action start-update' komutu, eski VM'leri aşamalı olarak yenileriyle değiştirir.
-  # '--proactive' bayrağı, güncellemenin hemen başlamasını sağlar.
+  # Step 4: Update the Managed Instance Group (MIG) with the new instance template
   - name: 'gcr.io/cloud-builders/gcloud'
-    id: 'update-mig'
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        TEMPLATE_NAME="mig-updater-template-${_BUILD_ID}"
-        echo "MIG güncelleniyor: ${_MIG_NAME}, yeni template: ${TEMPLATE_NAME}..."
-        gcloud compute instance-groups managed rolling-action start-update "${_MIG_NAME}" \
-          --version=template="projects/${PROJECT_ID}/global/instanceTemplates/${TEMPLATE_NAME}" \
-          --zone="${_ZONE}" \
-          --proactive \
-          --project="${PROJECT_ID}"
+      - 'compute'
+      - 'instance-groups'
+      - 'managed'
+      - 'rolling-action'
+      - 'start-update'
+      - '${_MIG_NAME}'
+      - '--version=template=mig-updater-template-${_BUILD_ID}'
+      - '--zone=${_ZONE}'
+      - '--project=${_PROJECT_ID}'
+      - '--proactive'
 
-# --- Değişken Tanımlamaları (Substitutions) ---
-# Bu değişkenleri, Cloud Build'ı tetiklerken veya Cloud Build tetikleyicisinde
-# kolayca değiştirebilirsiniz.
+# Define substitutions for easy parameterization
 substitutions:
-  _GOLDEN_VM_NAME: "test"             # Golden VM'inizin adı
-  _MIG_NAME: "instance-group-1"       # Managed Instance Group'unuzun adı
-  _ZONE: "europe-north1-a"            # VM ve MIG'inizin bulunduğu bölge (zone)
-  _MACHINE_TYPE: "n1-standard-4"      # Yeni instance template için kullanılacak makine tipi
+  _GOLDEN_VM_NAME: 'test'
+  _MIG_NAME: 'instance-group-1'
+  _ZONE: 'europe-north1-a'
+  _REGION: 'europe-north1'
+  _MACHINE_TYPE: 'n1-standard-4'
+  _PROJECT_ID: 'yusuffeyizoglu-sandbox'

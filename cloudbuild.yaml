@@ -45,6 +45,7 @@ steps:
       - 'start-update'
       - '${_MIG_NAME}'
       - '--version=template=mig-updater-template-${BUILD_ID}'
+      - '--network=${_NETWORK}
       - '--zone=${_ZONE}'
       - '--project=${_PROJECT_ID}'
       - '--proactive'
@@ -53,6 +54,7 @@ steps:
 substitutions:
   _GOLDEN_VM_NAME: 'test'
   _MIG_NAME: 'instance-group-1'
+  _NETWORK: 'vpc'
   _ZONE: 'europe-north1-a'
   _REGION: 'europe-north1'
   _MACHINE_TYPE: 'n1-standard-4'

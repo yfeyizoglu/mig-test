@@ -49,7 +49,6 @@ steps:
       - '--version=template=mig-updater-template-${BUILD_ID}'
       - '--zone=${_ZONE}'
       - '--project=${_PROJECT_ID}'
-      - '--proactive'
 
 # Define substitutions for easy parameterization
 substitutions:

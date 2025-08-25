@@ -32,7 +32,7 @@ steps:
       - '--machine-type=${_MACHINE_TYPE}'
       - '--region=${_REGION}'
       - '--network=${_NETWORK}'
-      - '--subnetwork=${_SUBNETWORK}'
+      #- '--subnetwork=${_SUBNETWORK}'
       - '--image=mig-updater-image-${BUILD_ID}'
       - '--project=${_PROJECT_ID}'
       - '--no-address'

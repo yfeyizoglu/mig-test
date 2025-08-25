@@ -11,11 +11,12 @@ steps:
 
   # Step 2: Create a new custom image from the Golden VM's disk
   - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'create-custom-image'
     args:
       - 'compute'
       - 'images'
       - 'create'
-      - 'mig-updater-image-${_BUILD_ID}'
+      - 'mig-updater-image-id-${_BUILD_ID}' # Adding 'id-' ensures the name starts with a letter
       - '--source-disk=${_GOLDEN_VM_NAME}'
       - '--source-disk-zone=${_ZONE}'
       - '--project=${_PROJECT_ID}'

@@ -1,5 +1,5 @@
 steps:
-  # Step 1: Stop the Golden VM to ensure data consistency
+  # Step 1: Stop the main VM to ensure data consistency
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       - 'compute'
@@ -9,7 +9,7 @@ steps:
       - '--zone=${_ZONE}'
       - '--project=${_PROJECT_ID}'
 
-  # Step 2: Create a new custom image from the Golden VM's disk
+  # Step 2: Create a new custom image from the main VM's disk
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'create-custom-image'
     args:
@@ -50,7 +50,6 @@ steps:
       - '--zone=${_ZONE}'
       - '--project=${_PROJECT_ID}'
 
-# Define substitutions for easy parameterization
 substitutions:
   _GOLDEN_VM_NAME: 'test'
   _MIG_NAME: 'instance-group-1'
